@@ -40,14 +40,76 @@ export interface Database {
     Tables: {
       teams: {
         Row: Team
-        Insert: Omit<Team, 'id' | 'created_at'>
-        Update: Partial<Omit<Team, 'id' | 'created_at'>>
+        Insert: {
+          id?: string
+          name: string
+          nickname?: string | null
+          category: CategoryType
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          nickname?: string | null
+          category?: CategoryType
+          created_at?: string
+        }
+        Relationships: []
       }
       matches: {
         Row: Match
-        Insert: Omit<Match, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Match, 'id' | 'created_at' | 'updated_at'>>
+        Insert: {
+          id?: string
+          category: CategoryType
+          bracket: BracketType
+          round: number
+          match_number: number
+          team1_id?: string | null
+          team2_id?: string | null
+          winner_id?: string | null
+          status?: MatchStatus
+          position_in_round: number
+          next_match_id?: string | null
+          next_match_position?: number | null
+          loser_next_match_id?: string | null
+          loser_next_match_position?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category?: CategoryType
+          bracket?: BracketType
+          round?: number
+          match_number?: number
+          team1_id?: string | null
+          team2_id?: string | null
+          winner_id?: string | null
+          status?: MatchStatus
+          position_in_round?: number
+          next_match_id?: string | null
+          next_match_position?: number | null
+          loser_next_match_id?: string | null
+          loser_next_match_position?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
+    },
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      category_type: CategoryType
+      bracket_type: BracketType
+      match_status: MatchStatus
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
