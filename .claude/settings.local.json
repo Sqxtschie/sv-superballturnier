@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run dev:*)",
       "Bash(npm install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd tournament system with Unterstufe, Mittelstufe, Oberstufe\n\n- Add group phase with standings tables and match tracking\n- Add playoff system with automatic semifinal-to-final propagation\n- Add separate pages for each tournament category\n- Add admin dashboard with category switching\n- Add reset button for testing\n- Add real-time updates via Supabase subscriptions\n- Add database migrations for all tournament setups\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)"
     ]
   }
 }
