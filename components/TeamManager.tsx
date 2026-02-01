@@ -14,18 +14,21 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
   const [editingTeam, setEditingTeam] = useState<string | null>(null)
   const [nickname, setNickname] = useState('')
   const [editName, setEditName] = useState('')
+  const [editClassName, setEditClassName] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
+  const [newTeamClassName, setNewTeamClassName] = useState('')
   const [newTeamNickname, setNewTeamNickname] = useState('')
   const [isAdding, setIsAdding] = useState(false)
 
   const categoryTeams = teams.filter(t => t.category === category)
 
   const handleSave = async (teamId: string) => {
-    console.log('Saving team:', teamId, { name: editName.trim(), nickname: nickname.trim() || null })
+    console.log('Saving team:', teamId, { name: editName.trim(), class_name: editClassName.trim(), nickname: nickname.trim() || null })
 
     const updateData = {
       name: editName.trim(),
+      class_name: editClassName.trim(),
       nickname: nickname.trim() || null
     }
 
@@ -45,6 +48,7 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
       setEditingTeam(null)
       setNickname('')
       setEditName('')
+      setEditClassName('')
       onUpdate()
     }
   }
@@ -53,6 +57,7 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
     setEditingTeam(team.id)
     setNickname(team.nickname || '')
     setEditName(team.name)
+    setEditClassName(team.class_name)
   }
 
   const handleAddTeam = async () => {
@@ -60,11 +65,16 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
       alert('Bitte einen Teamnamen eingeben!')
       return
     }
+    if (!newTeamClassName.trim()) {
+      alert('Bitte eine Klasse eingeben!')
+      return
+    }
 
-    console.log('Adding team:', { name: newTeamName.trim(), nickname: newTeamNickname.trim() || null, category })
+    console.log('Adding team:', { name: newTeamName.trim(), class_name: newTeamClassName.trim(), nickname: newTeamNickname.trim() || null, category })
 
     const insertData = {
       name: newTeamName.trim(),
+      class_name: newTeamClassName.trim(),
       nickname: newTeamNickname.trim() || null,
       category: category
     }
@@ -82,6 +92,7 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
       alert('Keine Berechtigung zum Hinzufügen. Bitte stelle sicher, dass du als Admin eingeloggt bist.')
     } else {
       setNewTeamName('')
+      setNewTeamClassName('')
       setNewTeamNickname('')
       setIsAdding(false)
       onUpdate()
@@ -136,16 +147,26 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
           {isAdding && (
             <div className="bg-white/10 rounded-lg p-4 mb-6 animate-[fadeInDown_0.3s_ease-out]">
               <h4 className="text-white font-bold mb-3">Neues Team erstellen</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                 <div>
                   <label className="text-white/70 text-sm mb-1 block">Teamname *</label>
                   <input
                     type="text"
                     value={newTeamName}
                     onChange={(e) => setNewTeamName(e.target.value)}
-                    placeholder="z.B. 5a, 10b, Q1..."
+                    placeholder="z.B. FC München..."
                     className="w-full px-3 py-2 text-sm md:text-base rounded border border-tournament-yellow bg-white/90 text-tournament-purple focus:ring-2 focus:ring-tournament-yellow"
                     autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-white/70 text-sm mb-1 block">Klasse *</label>
+                  <input
+                    type="text"
+                    value={newTeamClassName}
+                    onChange={(e) => setNewTeamClassName(e.target.value)}
+                    placeholder="z.B. 5a, U8..."
+                    className="w-full px-3 py-2 text-sm md:text-base rounded border border-tournament-yellow bg-white/90 text-tournament-purple focus:ring-2 focus:ring-tournament-yellow"
                   />
                 </div>
                 <div>
@@ -170,6 +191,7 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
                   onClick={() => {
                     setIsAdding(false)
                     setNewTeamName('')
+                    setNewTeamClassName('')
                     setNewTeamNickname('')
                   }}
                   className="flex-1 sm:flex-none px-4 py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700 transition-colors"
@@ -206,6 +228,16 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
                         />
                       </div>
                       <div>
+                        <label className="text-white/70 text-xs mb-1 block">Klasse</label>
+                        <input
+                          type="text"
+                          value={editClassName}
+                          onChange={(e) => setEditClassName(e.target.value)}
+                          placeholder="Klasse..."
+                          className="w-full px-3 py-2 text-sm rounded border border-tournament-yellow bg-white/90 text-tournament-purple focus:ring-2 focus:ring-tournament-yellow"
+                        />
+                      </div>
+                      <div>
                         <label className="text-white/70 text-xs mb-1 block">Spitzname</label>
                         <input
                           type="text"
@@ -227,6 +259,7 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
                             setEditingTeam(null)
                             setNickname('')
                             setEditName('')
+                            setEditClassName('')
                           }}
                           className="flex-1 px-3 py-1.5 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
                         >
@@ -238,10 +271,10 @@ export default function TeamManager({ teams, category, onUpdate }: TeamManagerPr
                     <div>
                       <div className="flex justify-between items-start mb-2">
                         <div className="text-white font-bold text-sm md:text-base">
-                          {team.name}
+                          {team.name} ({team.class_name})
                         </div>
                         <button
-                          onClick={() => handleDeleteTeam(team.id, team.name)}
+                          onClick={() => handleDeleteTeam(team.id, `${team.name} (${team.class_name})`)}
                           className="text-red-400 hover:text-red-300 text-sm transition-colors p-1"
                           title="Team löschen"
                         >

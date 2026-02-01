@@ -9,18 +9,21 @@ import PlayoffBracket from '@/components/PlayoffBracket'
 
 type ViewMode = 'tabelle' | 'spielplan' | 'playoffs'
 
-export default function Home() {
+export default function OberstufePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('tabelle')
-  const [standings, setStandings] = useState<Standing[]>([])
-  const [groupMatches, setGroupMatches] = useState<GroupMatchWithTeams[]>([])
-  const [playoffMatches, setPlayoffMatches] = useState<PlayoffMatchWithTeams[]>([])
+  const [standingsA, setStandingsA] = useState<Standing[]>([])
+  const [standingsB, setStandingsB] = useState<Standing[]>([])
+  const [groupMatchesA, setGroupMatchesA] = useState<GroupMatchWithTeams[]>([])
+  const [groupMatchesB, setGroupMatchesB] = useState<GroupMatchWithTeams[]>([])
+  const [winnerPlayoffMatches, setWinnerPlayoffMatches] = useState<PlayoffMatchWithTeams[]>([])
+  const [loserPlayoffMatches, setLoserPlayoffMatches] = useState<PlayoffMatchWithTeams[]>([])
 
   useEffect(() => {
     loadData()
 
     // Real-time Updates
     const groupMatchesSubscription = supabase
-      .channel('group-matches-changes')
+      .channel('oberstufe-group-matches-changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -31,7 +34,7 @@ export default function Home() {
       .subscribe()
 
     const playoffMatchesSubscription = supabase
-      .channel('playoff-matches-changes')
+      .channel('oberstufe-playoff-matches-changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -48,12 +51,19 @@ export default function Home() {
   }, [])
 
   async function loadData() {
-    // Lade Tabelle/Standings
-    const { data: standingsData } = await supabase
-      .from('standings')
+    // Lade Tabelle Gruppe A
+    const { data: standingsDataA } = await supabase
+      .from('standings_oberstufe_a')
       .select('*')
 
-    if (standingsData) setStandings(standingsData as Standing[])
+    if (standingsDataA) setStandingsA(standingsDataA as Standing[])
+
+    // Lade Tabelle Gruppe B
+    const { data: standingsDataB } = await supabase
+      .from('standings_oberstufe_b')
+      .select('*')
+
+    if (standingsDataB) setStandingsB(standingsDataB as Standing[])
 
     // Lade Gruppenphase Matches mit Teams
     const { data: groupMatchesData } = await supabase
@@ -67,11 +77,17 @@ export default function Home() {
       .order('match_number', { ascending: true })
 
     if (groupMatchesData) {
-      // Nur Mittelstufe-Spiele anzeigen
-      const filteredMatches = groupMatchesData.filter(
-        (match: any) => match.team1?.category === 'mittelstufe'
+      // Filter nach Gruppe A (match_number 201-206)
+      const matchesA = groupMatchesData.filter(
+        (match: any) => match.team1?.category === 'oberstufe' && match.team1?.group_name === 'A'
       )
-      setGroupMatches(filteredMatches as any)
+      setGroupMatchesA(matchesA as any)
+
+      // Filter nach Gruppe B (match_number 211-216)
+      const matchesB = groupMatchesData.filter(
+        (match: any) => match.team1?.category === 'oberstufe' && match.team1?.group_name === 'B'
+      )
+      setGroupMatchesB(matchesB as any)
     }
 
     // Lade Playoff Matches mit Teams
@@ -85,13 +101,21 @@ export default function Home() {
       `)
 
     if (playoffMatchesData) {
-      // Nur Mittelstufe-Playoffs anzeigen
-      const filteredMatches = playoffMatchesData.filter(
+      // Filter nach Oberstufe - Winner Bracket (match_number < 300)
+      const winnerMatches = playoffMatchesData.filter(
         (match: any) =>
-          (!match.team1 || match.team1?.category === 'mittelstufe') &&
-          (!match.team2 || match.team2?.category === 'mittelstufe')
+          (!match.team1 || match.team1?.category === 'oberstufe') &&
+          match.match_number < 300
       )
-      setPlayoffMatches(filteredMatches as any)
+      setWinnerPlayoffMatches(winnerMatches as any)
+
+      // Filter nach Oberstufe - Loser Bracket (match_number >= 300)
+      const loserMatches = playoffMatchesData.filter(
+        (match: any) =>
+          (!match.team1 || match.team1?.category === 'oberstufe') &&
+          match.match_number >= 300
+      )
+      setLoserPlayoffMatches(loserMatches as any)
     }
   }
 
@@ -104,7 +128,7 @@ export default function Home() {
             SV SUPERBALLTURNIER
           </h1>
           <div className="text-white text-lg md:text-2xl mb-2 animate-[fadeInDown_1.2s_ease-out]">
-            <span className="font-bold">MITTELSTUFE</span>
+            <span className="font-bold">OBERSTUFE</span>
             <span className="mx-2 md:mx-4">MEISTERSCHAFT</span>
           </div>
           <div className="text-tournament-yellow text-4xl md:text-6xl font-bold animate-[fadeInUp_1.4s_ease-out] animate-pulse">
@@ -148,9 +172,57 @@ export default function Home() {
 
         {/* Ansicht */}
         <div className="animate-[fadeInUp_1.8s_ease-out]">
-          {viewMode === 'tabelle' && <StandingsTable standings={standings} />}
-          {viewMode === 'spielplan' && <GroupMatches matches={groupMatches} />}
-          {viewMode === 'playoffs' && <PlayoffBracket matches={playoffMatches} />}
+          {viewMode === 'tabelle' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h2 className="text-3xl font-bold text-tournament-yellow mb-4 text-center">
+                  GRUPPE A
+                </h2>
+                <StandingsTable standings={standingsA} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-tournament-yellow mb-4 text-center">
+                  GRUPPE B
+                </h2>
+                <StandingsTable standings={standingsB} />
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'spielplan' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div>
+                <h2 className="text-3xl font-bold text-tournament-yellow mb-4 text-center">
+                  GRUPPE A
+                </h2>
+                <GroupMatches matches={groupMatchesA} />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-tournament-yellow mb-4 text-center">
+                  GRUPPE B
+                </h2>
+                <GroupMatches matches={groupMatchesB} />
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'playoffs' && (
+            <div className="space-y-12">
+              <div>
+                <h2 className="text-4xl font-bold text-tournament-yellow mb-6 text-center">
+                  WINNER BRACKET (Platz 1-4)
+                </h2>
+                <PlayoffBracket matches={winnerPlayoffMatches} />
+              </div>
+              <hr className="border-tournament-yellow/30" />
+              <div>
+                <h2 className="text-4xl font-bold text-white/70 mb-6 text-center">
+                  LOSER BRACKET (Platz 5-8)
+                </h2>
+                <PlayoffBracket matches={loserPlayoffMatches} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Admin Login Link */}

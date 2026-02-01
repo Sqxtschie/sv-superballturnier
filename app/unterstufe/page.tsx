@@ -2,25 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GroupMatchWithTeams, PlayoffMatchWithTeams, Standing } from '@/lib/database.types'
+import { GroupMatchWithTeams, Standing } from '@/lib/database.types'
 import StandingsTable from '@/components/StandingsTable'
 import GroupMatches from '@/components/GroupMatches'
-import PlayoffBracket from '@/components/PlayoffBracket'
 
-type ViewMode = 'tabelle' | 'spielplan' | 'playoffs'
+type ViewMode = 'tabelle' | 'spielplan'
 
-export default function Home() {
+export default function UnterstufePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('tabelle')
   const [standings, setStandings] = useState<Standing[]>([])
   const [groupMatches, setGroupMatches] = useState<GroupMatchWithTeams[]>([])
-  const [playoffMatches, setPlayoffMatches] = useState<PlayoffMatchWithTeams[]>([])
 
   useEffect(() => {
     loadData()
 
     // Real-time Updates
     const groupMatchesSubscription = supabase
-      .channel('group-matches-changes')
+      .channel('unterstufe-group-matches-changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -30,27 +28,15 @@ export default function Home() {
       })
       .subscribe()
 
-    const playoffMatchesSubscription = supabase
-      .channel('playoff-matches-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'playoff_matches'
-      }, () => {
-        loadData()
-      })
-      .subscribe()
-
     return () => {
       groupMatchesSubscription.unsubscribe()
-      playoffMatchesSubscription.unsubscribe()
     }
   }, [])
 
   async function loadData() {
     // Lade Tabelle/Standings
     const { data: standingsData } = await supabase
-      .from('standings')
+      .from('standings_unterstufe')
       .select('*')
 
     if (standingsData) setStandings(standingsData as Standing[])
@@ -67,31 +53,11 @@ export default function Home() {
       .order('match_number', { ascending: true })
 
     if (groupMatchesData) {
-      // Nur Mittelstufe-Spiele anzeigen
+      // Nur Unterstufe-Spiele anzeigen
       const filteredMatches = groupMatchesData.filter(
-        (match: any) => match.team1?.category === 'mittelstufe'
+        (match: any) => match.team1?.category === 'unterstufe'
       )
       setGroupMatches(filteredMatches as any)
-    }
-
-    // Lade Playoff Matches mit Teams
-    const { data: playoffMatchesData } = await supabase
-      .from('playoff_matches')
-      .select(`
-        *,
-        team1:teams!playoff_matches_team1_id_fkey(*),
-        team2:teams!playoff_matches_team2_id_fkey(*),
-        winner:teams!playoff_matches_winner_id_fkey(*)
-      `)
-
-    if (playoffMatchesData) {
-      // Nur Mittelstufe-Playoffs anzeigen
-      const filteredMatches = playoffMatchesData.filter(
-        (match: any) =>
-          (!match.team1 || match.team1?.category === 'mittelstufe') &&
-          (!match.team2 || match.team2?.category === 'mittelstufe')
-      )
-      setPlayoffMatches(filteredMatches as any)
     }
   }
 
@@ -104,7 +70,7 @@ export default function Home() {
             SV SUPERBALLTURNIER
           </h1>
           <div className="text-white text-lg md:text-2xl mb-2 animate-[fadeInDown_1.2s_ease-out]">
-            <span className="font-bold">MITTELSTUFE</span>
+            <span className="font-bold">UNTERSTUFE</span>
             <span className="mx-2 md:mx-4">MEISTERSCHAFT</span>
           </div>
           <div className="text-tournament-yellow text-4xl md:text-6xl font-bold animate-[fadeInUp_1.4s_ease-out] animate-pulse">
@@ -134,23 +100,33 @@ export default function Home() {
           >
             SPIELPLAN
           </button>
-          <button
-            onClick={() => setViewMode('playoffs')}
-            className={`px-8 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-110 hover:shadow-2xl ${
-              viewMode === 'playoffs'
-                ? 'bg-tournament-yellow text-tournament-purple shadow-lg scale-105'
-                : 'bg-tournament-purple-dark text-white hover:bg-tournament-purple'
-            }`}
-          >
-            PLAYOFFS
-          </button>
+        </div>
+
+        {/* Info-Box */}
+        <div className="text-center mb-6 animate-[fadeIn_1.6s_ease-out]">
+          <div className="inline-block bg-white/10 rounded-lg px-6 py-3">
+            <span className="text-white/80 text-sm md:text-base">
+              Jeder gegen Jeden - 5 Runden - Der Beste gewinnt!
+            </span>
+          </div>
         </div>
 
         {/* Ansicht */}
         <div className="animate-[fadeInUp_1.8s_ease-out]">
-          {viewMode === 'tabelle' && <StandingsTable standings={standings} />}
-          {viewMode === 'spielplan' && <GroupMatches matches={groupMatches} />}
-          {viewMode === 'playoffs' && <PlayoffBracket matches={playoffMatches} />}
+          {viewMode === 'tabelle' && (
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl font-bold text-tournament-yellow mb-4 text-center">
+                GESAMTTABELLE
+              </h2>
+              <StandingsTable standings={standings} />
+            </div>
+          )}
+
+          {viewMode === 'spielplan' && (
+            <div className="max-w-4xl mx-auto">
+              <GroupMatches matches={groupMatches} />
+            </div>
+          )}
         </div>
 
         {/* Admin Login Link */}
